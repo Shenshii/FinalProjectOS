@@ -18,7 +18,7 @@ void simulateOPT(const int* referenceString, int size, int frames);
 int main() {
     // Prompt for input file
     string fileName;
-    cout << "Enter the input file name (ex FIFO.txt, OPT.txt, or LRU.txt ): ";
+    cout << "Enter the input file name (ex FIFO.txt, OPT.txt): ";
     cin >> fileName;
 
     ifstream inputFile(fileName);
@@ -54,9 +54,6 @@ int main() {
         case 'F':
             simulateFIFO(referenceString, size, frames);
             break;
-        case 'L':
-            simulateLRU(referenceString, size, frames);
-            break;
         case 'O':
             simulateOPT(referenceString, size, frames);
             break;
@@ -70,8 +67,8 @@ int main() {
 
 // FIFO Algorithm
 void simulateFIFO(const int* referenceString, int size, int frames) {
-    int memory[frames];     // Array for memory frames
-    int index = 0;          // Tracks the position for replacement
+    int* memory = new int[frames];  // Dynamically allocate memory for 'frames' number of integers
+    int index = 0;                  // Tracks the position for replacement
     int pageFaults = 0;
     bool isPageFault;
 
@@ -109,62 +106,13 @@ void simulateFIFO(const int* referenceString, int size, int frames) {
     }
 
     cout << "Total Page Faults: " << pageFaults << endl;
-}
 
-// LRU Algorithm
-void simulateLRU(const int* referenceString, int size, int frames) {
-    int memory[frames];       // Array for memory frames
-    int usage[frames];        // Array to track usage (age)
-    int pageFaults = 0;
-    bool isPageFault;
-
-    // Initialize arrays
-    for (int i = 0; i < frames; i++) {
-        memory[i] = -1;
-        usage[i] = 0;
-    }
-
-    cout << "LRU Simulation:\n";
-    for (int i = 0; i < size; i++) {
-        isPageFault = true;
-
-        // Check if the page is already in memory
-        for (int j = 0; j < frames; j++) {
-            if (memory[j] == referenceString[i]) {
-                isPageFault = false;
-                usage[j] = i; // Update usage for this page
-                break;
-            }
-        }
-
-        // If page fault occurs, replace the least recently used page
-        if (isPageFault) {
-            int lruIndex = 0;
-            for (int j = 1; j < frames; j++) {
-                if (usage[j] < usage[lruIndex]) {
-                    lruIndex = j;
-                }
-            }
-            memory[lruIndex] = referenceString[i];
-            usage[lruIndex] = i;
-            pageFaults++;
-        }
-
-        // Display the current state of memory
-        cout << referenceString[i] << " -> ";
-        for (int j = 0; j < frames; j++) {
-            if (memory[j] != -1) cout << memory[j] << " ";
-        }
-        if (isPageFault) cout << "(Page Fault)";
-        cout << endl;
-    }
-
-    cout << "Total Page Faults: " << pageFaults << endl;
+    delete[] memory; // Free allocated memory
 }
 
 // OPT Algorithm
 void simulateOPT(const int* referenceString, int size, int frames) {
-    int memory[frames];
+    int* memory = new int[frames];  // Dynamically allocate memory for 'frames' number of integers
     int pageFaults = 0;
     bool isPageFault;
 
@@ -185,28 +133,30 @@ void simulateOPT(const int* referenceString, int size, int frames) {
             }
         }
 
-        // If page fault occurs, replace the optimal page
+        // If page fault occurs, determine the optimal page to replace
         if (isPageFault) {
             int replaceIndex = -1;
             int farthest = i;
-
             for (int j = 0; j < frames; j++) {
-                bool found = false;
+                int foundLater = -1;
                 for (int k = i + 1; k < size; k++) {
                     if (memory[j] == referenceString[k]) {
-                        if (k > farthest) {
-                            farthest = k;
-                            replaceIndex = j;
-                        }
-                        found = true;
+                        foundLater = k;
                         break;
                     }
                 }
-                if (!found) {
+
+                if (foundLater == -1) {  // This frame is not used again
                     replaceIndex = j;
                     break;
+                } else if (foundLater > farthest) {
+                    farthest = foundLater;
+                    replaceIndex = j;
                 }
             }
+
+            // If all pages are to be used, we replace the one used last
+            if (replaceIndex == -1) replaceIndex = 0;
 
             memory[replaceIndex] = referenceString[i];
             pageFaults++;
@@ -222,4 +172,7 @@ void simulateOPT(const int* referenceString, int size, int frames) {
     }
 
     cout << "Total Page Faults: " << pageFaults << endl;
+
+    delete[] memory; // Free allocated memory
 }
+
